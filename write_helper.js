@@ -1,0 +1,1 @@
+const fs = require("fs"); let d = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", c => d += c); process.stdin.on("end", () => { fs.writeFileSync(process.argv[2], d); console.log("Saved " + process.argv[2]); });

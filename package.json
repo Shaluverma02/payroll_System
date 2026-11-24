@@ -1,0 +1,12 @@
+{
+  "name": "employee-payroll-management",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev",
+    "start:api": "npm --prefix backend start"
+  },
+  "devDependencies": { "concurrently": "^9.1.2" }
+}
