@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Download, ShieldCheck, Upload } from 'lucide-react';
+import { Bell, CalendarCheck, Clock3, Download, ShieldCheck, Upload, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api, { getError } from './api';
 import { useAuth } from './AuthContext';
@@ -15,9 +15,47 @@ function Status({ value }) { return <span className={`status ${String(value).toL
 
 export function EmployeeHome() {
   const { companySettings } = useAuth();
-  const [profile, setProfile] = useState(null); const [payslips, setPayslips] = useState([]); const [attendance, setAttendance] = useState([]); const [error, setError] = useState('');
-  useEffect(() => { Promise.all([api.get('/me/profile'), api.get('/me/payslips'), api.get('/me/attendance')]).then(([person, slips, records]) => { setProfile(person.data); setPayslips(slips.data); setAttendance(records.data); }).catch(e => setError(getError(e))); }, []);
-  return <><PageHeading eyebrow="EMPLOYEE SELF-SERVICE" title={`Welcome, ${profile?.fullName?.split(' ')[0] || 'there'}`} subtitle="Your personal payroll and attendance workspace."/><section className="panel"><div className="panel-title-row"><div><h2>My payslips</h2><p>Your monthly payroll statements</p></div><Link className="button secondary" to="/leave">Request leave</Link></div>{error && <div className="inline-error">{error}</div>}{payslips.length ? <div className="table-wrap"><table><thead><tr><th>PERIOD</th><th>NET PAY</th><th>STATUS</th><th/></tr></thead><tbody>{payslips.map(item => <tr key={item.id}><td>{longMonth(item.month, companySettings)} {item.year}</td><td>{localMoney(item.netSalary, companySettings)}</td><td><Status value={item.status}/></td><td><Link className="action-link" to={`/payslips/${item.id}`}>View payslip</Link></td></tr>)}</tbody></table></div> : !error && <Empty title="No payslips available" text="Paid and pending payslips will appear here."/>}</section><section className="panel leave-list"><h2>My recent attendance</h2>{attendance.length ? <div className="table-wrap"><table><thead><tr><th>DATE</th><th>STATUS</th><th>OVERTIME</th></tr></thead><tbody>{attendance.slice(0,10).map(record => <tr key={record.id}><td>{record.attendanceDate}</td><td><Status value={record.status}/></td><td>{record.overtimeHours || 0} hrs</td></tr>)}</tbody></table></div> : <Empty title="No attendance records" text="Your workday records will appear here."/>}</section></>;
+  const [profile, setProfile] = useState(null); const [payslips, setPayslips] = useState([]); const [attendance, setAttendance] = useState([]); const [leaveRequests, setLeaveRequests] = useState([]); const [error, setError] = useState('');
+  useEffect(() => { Promise.all([api.get('/me/profile'), api.get('/me/payslips'), api.get('/me/attendance'), api.get('/leave')]).then(([person, slips, records, leave]) => { setProfile(person.data); setPayslips(slips.data); setAttendance(records.data); setLeaveRequests(leave.data); }).catch(e => setError(getError(e))); }, []);
+  const presentDays = attendance.filter(record => record.status === 'Present').length;
+  const pendingLeave = leaveRequests.filter(request => request.status === 'Pending').length;
+  return <><PageHeading eyebrow="EMPLOYEE SELF-SERVICE" title={`Welcome, ${profile?.fullName?.split(' ')[0] || 'there'}`} subtitle="Your personal profile, payroll, attendance, and leave workspace." action={<Link className="button secondary" to="/notifications"><Bell size={16}/> Notifications</Link>}/>
+    {error && <div className="inline-error">{error}</div>}
+    <div className="stat-grid">
+      <section className="stat-card"><div className="stat-top"><span className="stat-icon blue"><Wallet size={19}/></span><Link className="text-link" to="/leave">Leave</Link></div><div className="stat-number">{pendingLeave}</div><div className="stat-title">Pending leave requests</div><div className="stat-note">Track requests and decisions</div></section>
+      <section className="stat-card"><div className="stat-top"><span className="stat-icon green"><CalendarCheck size={19}/></span><span className="stat-trend">Attendance</span></div><div className="stat-number">{presentDays}</div><div className="stat-title">Present days recorded</div><div className="stat-note">From your recent records</div></section>
+      <section className="stat-card"><div className="stat-top"><span className="stat-icon amber"><Clock3 size={19}/></span><span className="stat-trend">Payslips</span></div><div className="stat-number">{payslips.length}</div><div className="stat-title">Payroll statements</div><div className="stat-note">View and download payslips</div></section>
+      <section className="stat-card"><div className="stat-top"><span className="stat-icon purple"><Bell size={19}/></span><Link className="text-link" to="/notifications">Open</Link></div><div className="stat-number">{leaveRequests.length}</div><div className="stat-title">Leave requests</div><div className="stat-note">Submitted requests and statuses</div></section>
+    </div>
+    {profile && <section className="panel"><div className="panel-title-row"><div><h2>My profile</h2><p>Your employee and job details</p></div><Link className="action-link" to="/profile">Account settings</Link></div><div className="detail-grid">
+      <div className="detail-card"><h3>Personal details</h3><dl><div><dt>Employee ID</dt><dd>{profile.employeeId || '—'}</dd></div><div><dt>Email</dt><dd>{profile.email || '—'}</dd></div><div><dt>Phone</dt><dd>{profile.phone || '—'}</dd></div></dl></div>
+      <div className="detail-card"><h3>Employment</h3><dl><div><dt>Department</dt><dd>{profile.Department?.departmentName || '—'}</dd></div><div><dt>Job title</dt><dd>{profile.designation || '—'}</dd></div><div><dt>Joining date</dt><dd>{profile.joiningDate || '—'}</dd></div><div><dt>Status</dt><dd>{profile.employmentStatus || '—'}</dd></div></dl></div>
+      <div className="detail-card"><h3>Salary structure</h3><dl><div><dt>Basic salary</dt><dd>{localMoney(profile.Salary?.basicSalary, companySettings)}</dd></div><div><dt>HRA & allowances</dt><dd>{localMoney(Number(profile.Salary?.hra || 0) + Number(profile.Salary?.allowances || 0), companySettings)}</dd></div></dl></div>
+    </div></section>}
+    <section className="panel"><div className="panel-title-row"><div><h2>My payslips</h2><p>Your monthly payroll statements</p></div><Link className="button secondary" to="/leave">Request leave</Link></div>{payslips.length ? <div className="table-wrap"><table><thead><tr><th>PERIOD</th><th>NET PAY</th><th>STATUS</th><th/></tr></thead><tbody>{payslips.map(item => <tr key={item.id}><td>{longMonth(item.month, companySettings)} {item.year}</td><td>{localMoney(item.netSalary, companySettings)}</td><td><Status value={item.status}/></td><td><Link className="action-link" to={`/payslips/${item.id}`}>View payslip</Link></td></tr>)}</tbody></table></div> : !error && <Empty title="No payslips available" text="Paid and pending payslips will appear here."/>}</section>
+    <section className="panel"><div className="panel-title-row"><div><h2>My leave requests</h2><p>Current request status and review outcomes</p></div><Link className="action-link" to="/leave">Manage leave requests</Link></div>{leaveRequests.length ? <div className="table-wrap"><table><thead><tr><th>DATES</th><th>TYPE</th><th>REASON</th><th>STATUS</th></tr></thead><tbody>{leaveRequests.slice(0,5).map(request => <tr key={request.id}><td>{request.startDate} – {request.endDate}</td><td>{request.leaveType}</td><td>{request.reason || '—'}</td><td><Status value={request.status}/></td></tr>)}</tbody></table></div> : !error && <Empty title="No leave requests" text="Submit a leave request to see its status here."/>}</section>
+    <section className="panel leave-list"><h2>My recent attendance</h2>{attendance.length ? <div className="table-wrap"><table><thead><tr><th>DATE</th><th>STATUS</th><th>OVERTIME</th></tr></thead><tbody>{attendance.slice(0,10).map(record => <tr key={record.id}><td>{record.attendanceDate}</td><td><Status value={record.status}/></td><td>{record.overtimeHours || 0} hrs</td></tr>)}</tbody></table></div> : !error && <Empty title="No attendance records" text="Your workday records will appear here."/>}</section>
+  </>;
+}
+
+export function EmployeeNotifications() {
+  const [notifications, setNotifications] = useState([]);
+  const [error, setError] = useState('');
+  useEffect(() => { api.get('/notifications').then(response => setNotifications(response.data)).catch(e => setError(getError(e))); }, []);
+  const markRead = async item => {
+    try {
+      await api.put(`/notifications/${item.id}/read`);
+      setNotifications(rows => rows.map(row => row.id === item.id ? { ...row, readAt: new Date().toISOString() } : row));
+    } catch (e) {
+      setError(getError(e));
+    }
+  };
+  return <><PageHeading eyebrow="EMPLOYEE SELF-SERVICE" title="Notifications" subtitle="Updates about your leave requests and payroll."/>
+    {error && <div className="inline-error">{error}</div>}
+    <section className="panel"><div className="panel-title-row"><div><h2>Your notifications</h2><p>Leave and payroll updates for your account</p></div><button className="button secondary" onClick={async () => { try { await api.put('/notifications/read-all'); setNotifications(rows => rows.map(item => ({ ...item, readAt: item.readAt || new Date().toISOString() }))); } catch (e) { setError(getError(e)); } }}>Mark all read</button></div>
+      {notifications.length ? <div className="notifications-list">{notifications.map(item => <div key={item.id} className={`notification-item ${item.readAt ? 'read' : ''}`}><div><b>{item.title}</b><span>{item.message}</span><small>{new Date(item.createdAt).toLocaleString()}</small></div><div className="row-actions">{item.link && <Link className="action-link" to={item.link}>Open</Link>}{!item.readAt && <button className="action-link" onClick={() => markRead(item)}>Mark read</button>}</div></div>)}</div> : !error && <Empty title="You're all caught up" text="Leave and payroll updates will appear here."/>}
+    </section>
+  </>;
 }
 
 export function LeaveManagement({ user }) {
