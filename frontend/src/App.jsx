@@ -33,7 +33,6 @@ function ProtectedLayout({ setNotice }) {
   return <div className="app-shell container-fluid p-0">
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <Link to="/" className="brand"><span className="brand-mark"><Sparkles size={19}/></span><span>northstar<span className="brand-sub">PEOPLE & PAYROLL</span></span></Link>
-      <div className="workspace-switch"><span className="workspace-avatar">N</span><span><b>Northstar Inc.</b><small>Workspace</small></span><ChevronDown size={15}/></div>
       {navGroups.map(group => <div className="nav-group" key={group.label}><div className="nav-label">{group.label}</div>{group.items.map(([label,path,Icon]) => <NavLink key={path} to={path} end={path === '/'} onClick={() => setMenuOpen(false)} className={({isActive})=>`nav-link ${isActive?'active':''}`}><Icon size={18}/><span>{label}</span>{label === 'Payroll history' && <span className="nav-dot"/>}</NavLink>)}</div>)}
       <div className="sidebar-bottom"><NavLink to="/profile" className="nav-link"><Settings size={18}/><span>Settings</span></NavLink><div className="profile-mini"><button className="profile-click" onClick={()=>navigate('/profile')}><span className="avatar">{admin?.fullName?.slice(0,1)||'A'}</span><span className="profile-mini-info"><b>{admin?.fullName || 'Administrator'}</b><small>{role === 'admin' ? 'Administrator' : role.replaceAll('_',' ')}</small></span></button></div></div>
     </aside>
